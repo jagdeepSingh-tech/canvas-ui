@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { initTheme, toggleTheme } from "./themeManager";
+import { initTheme, toggleTheme, getTheme } from "./themeManager";
+import Toast from "./Toast";
 
 // Initialize theme immediately
 initTheme();
@@ -96,11 +97,29 @@ const styles = {
 
 export default function Root(props) {
   const [hoveredCard, setHoveredCard] = React.useState(null);
+  const [currentTheme, setCurrentTheme] = useState(getTheme());
 
-  // Don't render if we're not on the root path (safeguard)
-  // if (window.location.pathname !== "/") {
-  //   return null;
-  // }
+  const [toast, setToast] = useState(null);
+
+  // Listen for theme changes and global toasts
+  useEffect(() => {
+    const handleThemeChange = (e) => {
+      setCurrentTheme(e.detail);
+    };
+
+    const handleGlobalToast = (e) => {
+      const { type, message, actionLabel, onAction } = e.detail;
+      setToast({ type, message, actionLabel, onAction });
+    };
+
+    window.addEventListener("theme-change", handleThemeChange);
+    window.addEventListener("global-toast", handleGlobalToast);
+
+    return () => {
+      window.removeEventListener("theme-change", handleThemeChange);
+      window.removeEventListener("global-toast", handleGlobalToast);
+    };
+  }, []);
 
   const handleCardClick = (path) => {
     window.history.pushState({}, "", path);
@@ -157,6 +176,10 @@ export default function Root(props) {
       overflow: "visible",
     };
 
+  const handleThemeToggle = () => {
+    toggleTheme();
+  };
+
   return (
     <div style={containerStyle}>
       {isRoot && (
@@ -197,9 +220,21 @@ export default function Root(props) {
           </div>
         </div>
       )}
-      <button id="global-theme-toggle" onClick={() => window.toggleGlobalTheme()}>
-        🌓
+      <button
+        id="global-theme-toggle"
+        onClick={handleThemeToggle}
+        aria-label="Toggle theme"
+        title={`Switch to ${currentTheme === 'light' ? 'dark' : 'light'} mode`}
+      >
+        {currentTheme === 'light' ? '🌙' : '☀️'}
       </button>
+
+      {toast && (
+        <Toast
+          {...toast}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }
