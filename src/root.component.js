@@ -1,9 +1,14 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { initTheme, toggleTheme } from "./themeManager";
+
+// Initialize theme immediately
+initTheme();
+window.toggleGlobalTheme = toggleTheme;
 
 const styles = {
   container: {
     minHeight: "100vh",
-    background: "linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%)",
+    background: "var(--bg-secondary)",
     padding: "2rem 1rem",
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif",
   },
@@ -19,13 +24,13 @@ const styles = {
   title: {
     fontSize: "3rem",
     fontWeight: "700",
-    color: "#1a1a1a",
+    color: "var(--text-primary)",
     margin: "0 0 0.5rem 0",
     letterSpacing: "-0.02em",
   },
   subtitle: {
     fontSize: "1.25rem",
-    color: "#6b7280",
+    color: "var(--text-secondary)",
     margin: "0",
     fontWeight: "400",
   },
@@ -36,13 +41,13 @@ const styles = {
     padding: "0 1rem",
   },
   card: {
-    background: "#ffffff",
+    background: "var(--card-bg)",
     borderRadius: "16px",
     padding: "2.5rem",
-    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)",
+    boxShadow: "var(--shadow-sm)",
     cursor: "pointer",
     transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-    border: "1px solid rgba(0, 0, 0, 0.05)",
+    border: "1px solid var(--border-color)",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -50,7 +55,7 @@ const styles = {
   },
   cardHover: {
     transform: "scale(1.03)",
-    boxShadow: "0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.08)",
+    boxShadow: "var(--shadow-md)",
   },
   icon: {
     fontSize: "4rem",
@@ -60,12 +65,12 @@ const styles = {
   cardTitle: {
     fontSize: "1.75rem",
     fontWeight: "600",
-    color: "#1a1a1a",
+    color: "var(--text-primary)",
     margin: "0 0 0.75rem 0",
   },
   cardDescription: {
     fontSize: "1rem",
-    color: "#6b7280",
+    color: "var(--text-secondary)",
     lineHeight: "1.6",
     margin: "0 0 1.5rem 0",
     maxWidth: "280px",
@@ -75,16 +80,17 @@ const styles = {
     fontSize: "1rem",
     fontWeight: "500",
     color: "#ffffff",
-    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    background: "var(--accent)",
     border: "none",
     borderRadius: "8px",
     cursor: "pointer",
     transition: "all 0.2s ease",
-    boxShadow: "0 2px 4px rgba(102, 126, 234, 0.3)",
+    boxShadow: "0 2px 4px rgba(99, 102, 241, 0.3)",
   },
   buttonHover: {
     transform: "translateY(-1px)",
-    boxShadow: "0 4px 8px rgba(102, 126, 234, 0.4)",
+    boxShadow: "0 4px 8px rgba(99, 102, 241, 0.4)",
+    background: "var(--accent-hover)",
   },
 };
 
@@ -92,9 +98,9 @@ export default function Root(props) {
   const [hoveredCard, setHoveredCard] = React.useState(null);
 
   // Don't render if we're not on the root path (safeguard)
-  if (window.location.pathname !== "/") {
-    return null;
-  }
+  // if (window.location.pathname !== "/") {
+  //   return null;
+  // }
 
   const handleCardClick = (path) => {
     window.history.pushState({}, "", path);
@@ -124,44 +130,76 @@ export default function Root(props) {
     };
   };
 
+  const [isRoot, setIsRoot] = useState(window.location.pathname === "/");
+
+  useEffect(() => {
+    const handleRouteChange = () => {
+      setIsRoot(window.location.pathname === "/");
+    };
+
+    window.addEventListener("popstate", handleRouteChange);
+    window.addEventListener("single-spa:routing-event", handleRouteChange);
+
+    return () => {
+      window.removeEventListener("popstate", handleRouteChange);
+      window.removeEventListener("single-spa:routing-event", handleRouteChange);
+    };
+  }, []);
+
+  const containerStyle = isRoot
+    ? styles.container
+    : {
+      ...styles.container,
+      minHeight: 0,
+      height: 0,
+      padding: 0,
+      background: "transparent",
+      overflow: "visible",
+    };
+
   return (
-    <div style={styles.container}>
-      <div style={styles.content}>
-        <header style={styles.header}>
-          <h1 style={styles.title}>Form Platform</h1>
-          <p style={styles.subtitle}>Build and manage dynamic forms</p>
-        </header>
+    <div style={containerStyle}>
+      {isRoot && (
+        <div style={styles.content}>
+          <header style={styles.header}>
+            <h1 style={styles.title}>Form Platform</h1>
+            <p style={styles.subtitle}>Build and manage dynamic forms</p>
+          </header>
 
-        <div style={styles.grid}>
-          <div
-            style={getCardStyle("builder")}
-            onClick={() => handleCardClick("/form-builder")}
-            onMouseEnter={() => handleCardMouseEnter("builder")}
-            onMouseLeave={handleCardMouseLeave}
-          >
-            <span style={styles.icon}>📝</span>
-            <h2 style={styles.cardTitle}>Form Builder</h2>
-            <p style={styles.cardDescription}>
-              Create and customize dynamic forms with an intuitive drag-and-drop interface. Design forms that adapt to your needs.
-            </p>
-            <button style={getButtonStyle("builder")}>Open</button>
-          </div>
+          <div style={styles.grid}>
+            <div
+              style={getCardStyle("builder")}
+              onClick={() => handleCardClick("/form-builder")}
+              onMouseEnter={() => handleCardMouseEnter("builder")}
+              onMouseLeave={handleCardMouseLeave}
+            >
+              <span style={styles.icon}>📝</span>
+              <h2 style={styles.cardTitle}>Form Builder</h2>
+              <p style={styles.cardDescription}>
+                Create and customize dynamic forms with an intuitive drag-and-drop interface. Design forms that adapt to your needs.
+              </p>
+              <button style={getButtonStyle("builder")}>Open</button>
+            </div>
 
-          <div
-            style={getCardStyle("viewer")}
-            onClick={() => handleCardClick("/form-viewer")}
-            onMouseEnter={() => handleCardMouseEnter("viewer")}
-            onMouseLeave={handleCardMouseLeave}
-          >
-            <span style={styles.icon}>👁️</span>
-            <h2 style={styles.cardTitle}>Form Viewer</h2>
-            <p style={styles.cardDescription}>
-              View and interact with your forms. Fill out forms, review submissions, and manage form data efficiently.
-            </p>
-            <button style={getButtonStyle("viewer")}>Open</button>
+            <div
+              style={getCardStyle("viewer")}
+              onClick={() => handleCardClick("/form-viewer")}
+              onMouseEnter={() => handleCardMouseEnter("viewer")}
+              onMouseLeave={handleCardMouseLeave}
+            >
+              <span style={styles.icon}>👁️</span>
+              <h2 style={styles.cardTitle}>Form Viewer</h2>
+              <p style={styles.cardDescription}>
+                View and interact with your forms. Fill out forms, review submissions, and manage form data efficiently.
+              </p>
+              <button style={getButtonStyle("viewer")}>Open</button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+      <button id="global-theme-toggle" onClick={() => window.toggleGlobalTheme()}>
+        🌓
+      </button>
     </div>
   );
 }
